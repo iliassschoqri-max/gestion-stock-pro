@@ -1,0 +1,25 @@
+{
+  "name": "stockflow",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Application classique de gestion de stock (HTML/CSS/JS pur)",
+  "scripts": {
+    "test": "node tests/api.test.js && node tests/ui.test.js",
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "devDependencies": {
+    "jsdom": "^24.0.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "compression": "^1.8.2",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.4.0",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^6.0.1"
+  }
+}

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StockFlow — Gestion de stock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="login-screen" id="login-screen">
+    <form class="login-card" id="form-login">
+      <div class="brand-logo login-logo">SF</div>
+      <h1>StockFlow</h1>
+      <p class="muted">Connectez-vous pour gérer vos stocks</p>
+      <label class="field">
+        <span>Utilisateur</span>
+        <input class="input" id="login-user" required placeholder="admin" autocomplete="username">
+      </label>
+      <label class="field">
+        <span>Mot de passe</span>
+        <input class="input" id="login-pass" type="password" required placeholder="••••••••" autocomplete="current-password">
+      </label>
+      <button type="submit" class="btn btn-primary btn-block">Se connecter</button>
+      <div class="login-hint">Démo : admin / admin</div>
+    </form>
+  </div>
+
+  <div class="layout" id="app" hidden>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-logo">SF</div>
+        <div class="brand-name">StockFlow<small>Gestion de stock</small></div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-view="dashboard">
+          <span class="nav-icon">&#9632;</span> Tableau de bord
+          <span class="nav-count" id="count-dashboard"></span>
+        </button>
+        <button class="nav-item" data-view="products">
+          <span class="nav-icon">&#9635;</span> Produits
+          <span class="nav-count" id="count-products"></span>
+        </button>
+        <button class="nav-item" data-view="movements">
+          <span class="nav-icon">&#8645;</span> Mouvements
+          <span class="nav-count" id="count-movements"></span>
+        </button>
+        <button class="nav-item" data-view="help">
+          <span class="nav-icon">?</span> Aide du projet
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-box">
+          <span class="user-avatar" id="user-avatar">A</span>
+          <div class="user-info">
+            <strong id="user-name">admin</strong>
+            <small id="user-role">admin</small>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-block" id="btn-export">Exporter (CSV)</button>
+        <button class="btn btn-ghost btn-block" id="btn-reset">Réinitialiser la démo</button>
+        <button class="btn btn-ghost btn-block" id="btn-logout">Déconnexion</button>
+      </div>
+    </aside>
+
+    <main class="main">
+
+      <header class="topbar">
+        <button class="btn btn-icon" id="btn-menu" aria-label="Menu">&#9776;</button>
+        <h1 class="page-title" id="page-title">Tableau de bord</h1>
+        <div class="topbar-actions">
+          <input type="search" class="input search" id="search" placeholder="Rechercher un produit...">
+          <button class="btn btn-primary" id="btn-add-product">+ Nouveau produit</button>
+        </div>
+      </header>
+
+      <section class="view active" id="view-dashboard">
+        <div class="stats" id="stats"></div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head">
+              <h2>Alertes de stock</h2>
+              <span class="badge badge-danger" id="alerts-count">0</span>
+            </div>
+            <div id="alerts-list"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h2>Derniers mouvements</h2>
+              <button class="btn btn-sm" data-go="movements">Tout voir</button>
+            </div>
+            <div id="recent-movements"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Valeur du stock par catégorie</h2></div>
+          <div id="category-chart"></div>
+        </div>
+      </section>
+
+      <section class="view" id="view-products">
+        <div class="toolbar">
+          <select class="input" id="filter-category">
+            <option value="">Toutes les catégories</option>
+          </select>
+          <select class="input" id="filter-status">
+            <option value="">Tous les états</option>
+            <option value="ok">Stock suffisant</option>
+            <option value="low">Stock bas</option>
+            <option value="out">Rupture</option>
+          </select>
+          <span class="spacer"></span>
+          <span class="muted" id="products-count"></span>
+        </div>
+
+        <div class="card">
+          <table class="table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Référence</th>
+                <th>Produit</th>
+                <th>Catégorie</th>
+                <th class="num">Prix</th>
+                <th class="num">Stock</th>
+                <th>État</th>
+                <th class="actions-col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="products-body"></tbody>
+          </table>
+          <div class="empty" id="products-empty" hidden>
+            Aucun produit trouvé. Ajoutez votre premier produit !
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-movements">
+        <div class="toolbar">
+          <button class="btn btn-primary" id="btn-add-movement">+ Nouveau mouvement</button>
+          <select class="input" id="filter-type">
+            <option value="">Entrées & sorties</option>
+            <option value="in">Entrées</option>
+            <option value="out">Sorties</option>
+          </select>
+          <span class="spacer"></span>
+          <span class="muted" id="movements-count"></span>
+        </div>
+
+        <div class="card">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Produit</th>
+                <th>Type</th>
+                <th class="num">Quantité</th>
+                <th>Motif</th>
+                <th>Opérateur</th>
+              </tr>
+            </thead>
+            <tbody id="movements-body"></tbody>
+          </table>
+          <div class="empty" id="movements-empty" hidden>Aucun mouvement enregistré.</div>
+        </div>
+      </section>
+
+      <section class="view" id="view-help">
+        <div class="help">
+          <div class="card">
+            <h2>Bienvenue dans StockFlow</h2>
+            <p>Application classique de gestion de stock, 100% navigateur (HTML/CSS/JS), sans dépendance ni serveur.</p>
+            <h3>Fonctionnalités</h3>
+            <ul>
+              <li><strong>Tableau de bord</strong> : statistiques, alertes de rupture, derniers mouvements, valeur par catégorie.</li>
+              <li><strong>Produits</strong> : création, modification, suppression, recherche et filtres (catégorie / état).</li>
+              <li><strong>Mouvements</strong> : entrées et sorties de stock avec motif et opérateur, historique complet.</li>
+              <li><strong>Persistance</strong> : les données sont sauvegardées dans le <code>localStorage</code> du navigateur.</li>
+              <li><strong>Export CSV</strong> : télécharge la liste des produits (bouton en bas de la barre latérale).</li>
+            </ul>
+            <h3>Démarrage</h3>
+            <ol>
+              <li>Ouvrir <code>index.html</code> dans un navigateur (double-clic suffit).</li>
+              <li>Ou lancer un serveur local : <code>python -m http.server 8000</code> puis http://localhost:8000</li>
+            </ol>
+            <h3>Guide pas-à-pas</h3>
+            <ol>
+              <li>Allez dans <strong>Produits</strong> → <em>+ Nouveau produit</em> : renseignez référence, nom, catégorie, prix, stock et seuil d'alerte.</li>
+              <li>Enregistrez des <strong>mouvements</strong> : une entrée augmente le stock, une sortie le diminue (bloquée si stock insuffisant).</li>
+              <li>Suivez les alertes depuis le <strong>tableau de bord</strong> dès que le stock passe sous le seuil.</li>
+            </ol>
+            <h3>Architecture du projet</h3>
+            <pre>gestion-stock/
+├── index.html          # Structure de l'application
+├── css/style.css       # Thème et responsive
+├── js/store.js         # Couche données (localStorage, CRUD, mouvements)
+├── js/app.js           # Interface (vues, formulaires, filtres, toasts)
+├── docs/GUIDE.md       # Guide utilisateur détaillé
+└── README.md           # Présentation, installation, contribution</pre>
+            <h3>Raccourcis clavier</h3>
+            <ul>
+              <li><kbd>Échap</kbd> : fermer la fenêtre ouverte</li>
+              <li><kbd>Entrée</kbd> : valider le formulaire actif</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modal-product" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="product-modal-title">Nouveau produit</h2>
+        <button class="btn btn-icon" data-close>&times;</button>
+      </div>
+      <form id="form-product">
+        <input type="hidden" id="p-id">
+        <div class="form-grid">
+          <label class="field">
+            <span>Référence *</span>
+            <input class="input" id="p-ref" required placeholder="PRD-001">
+          </label>
+          <label class="field">
+            <span>Nom *</span>
+            <input class="input" id="p-name" required placeholder="Nom du produit">
+          </label>
+          <label class="field">
+            <span>Catégorie</span>
+            <input class="input" id="p-category" list="categories" placeholder="Ex : Électronique">
+            <datalist id="categories"></datalist>
+          </label>
+          <label class="field">
+            <span>Prix unitaire (€) *</span>
+            <input class="input" id="p-price" type="number" min="0" step="0.01" required placeholder="0.00">
+          </label>
+          <label class="field">
+            <span>Quantité en stock *</span>
+            <input class="input" id="p-qty" type="number" min="0" step="1" required placeholder="0">
+          </label>
+          <label class="field">
+            <span>Seuil d'alerte</span>
+            <input class="input" id="p-min" type="number" min="0" step="1" value="5">
+          </label>
+        </div>
+        <label class="field">
+          <span>Description</span>
+          <textarea class="input" id="p-desc" rows="3" placeholder="Description facultative..."></textarea>
+        </label>
+        <div class="form-grid">
+          <label class="field">
+            <span>Image du produit</span>
+            <input class="input" id="p-image" type="file" accept="image/*">
+          </label>
+          <div class="field">
+            <span>Aperçu</span>
+            <div class="img-preview" id="p-preview">Aucune image</div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn" data-close>Annuler</button>
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-movement" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <h2>Nouveau mouvement</h2>
+        <button class="btn btn-icon" data-close>&times;</button>
+      </div>
+      <form id="form-movement">
+        <div class="form-grid">
+          <label class="field">
+            <span>Produit *</span>
+            <select class="input" id="m-product" required></select>
+          </label>
+          <label class="field">
+            <span>Type *</span>
+            <select class="input" id="m-type" required>
+              <option value="in">Entrée (+)</option>
+              <option value="out">Sortie (-)</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Quantité *</span>
+            <input class="input" id="m-qty" type="number" min="1" step="1" required placeholder="1">
+          </label>
+          <label class="field">
+            <span>Opérateur</span>
+            <input class="input" id="m-author" placeholder="Nom de l'opérateur">
+          </label>
+        </div>
+        <label class="field">
+          <span>Motif</span>
+          <input class="input" id="m-reason" placeholder="Ex : réception fournisseur, vente, inventaire...">
+        </label>
+        <div class="modal-foot">
+          <button type="button" class="btn" data-close>Annuler</button>
+          <button type="submit" class="btn btn-primary">Valider le mouvement</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-confirm" hidden>
+    <div class="modal modal-sm">
+      <div class="modal-head">
+        <h2 id="confirm-title">Confirmation</h2>
+        <button class="btn btn-icon" data-close>&times;</button>
+      </div>
+      <p id="confirm-message"></p>
+      <div class="modal-foot">
+        <button type="button" class="btn" data-close>Annuler</button>
+        <button type="button" class="btn btn-danger" id="confirm-ok">Confirmer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts"></div>
+
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
