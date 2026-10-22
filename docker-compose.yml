@@ -1,0 +1,17 @@
+services:
+  app:
+    image: ${DOCKERHUB_USERNAME:-iliassschoqri-max}/gestion-stock-pro:latest
+    build: .
+    container_name: stockflow
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DATA_DIR=/data
+      - UPLOADS_DIR=/data/uploads
+    volumes:
+      - stockflow-data:/data
+    restart: unless-stopped
+
+volumes:
+  stockflow-data:

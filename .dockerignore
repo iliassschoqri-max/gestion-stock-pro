@@ -1,0 +1,15 @@
+.git
+.github
+node_modules
+npm-debug.log
+*.log
+.DS_Store
+Thumbs.db
+database.sqlite
+uploads
+tests
+docs
+README.md
+docker-compose.yml
+Dockerfile
+.dockerignore

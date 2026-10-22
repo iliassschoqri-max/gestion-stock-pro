@@ -8,19 +8,21 @@ const path = require('path');
 const multer = require('multer');
 
 const app = express();
-const port = 3000;
+const port = Number(process.env.PORT) || 3000;
+const dataDir = process.env.DATA_DIR || __dirname;
+const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, 'uploads');
 
 // Middleware de sécurité et performance
 app.use(helmet({ contentSecurityPolicy: false })); // Désactivé pour simplifier le chargement des polices/images externes en dev
 app.use(compression());
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(uploadsDir));
 app.use(express.static(path.join(__dirname)));
 
 // Configuration de l'upload d'images
 const storage = multer.diskStorage({
-  destination: 'uploads/',
+  destination: uploadsDir,
   filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname));
   }
@@ -31,7 +33,7 @@ let db;
 
 async function setupDb() {
   db = await open({
-    filename: path.join(__dirname, 'database.sqlite'),
+    filename: path.join(dataDir, 'database.sqlite'),
     driver: sqlite3.Database
   });
 
@@ -244,8 +246,9 @@ app.post('/api/reset', async (req, res) => {
 
 // Démarrage
 const fs = require('fs');
-if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
+fs.mkdirSync(uploadsDir, { recursive: true });
+fs.mkdirSync(dataDir, { recursive: true });
 
 setupDb().then(() => {
-  app.listen(port, () => console.log(`Professionnel StockFlow lancé sur http://localhost:${port}`));
+  app.listen(port, '0.0.0.0', () => console.log(`Professionnel StockFlow lancé sur http://localhost:${port}`));
 });
