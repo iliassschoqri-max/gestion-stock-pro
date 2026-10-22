@@ -167,10 +167,12 @@
 
   /* ---------- Products ---------- */
   async function filteredProducts() {
+    const all = await Store.getProducts();
+    // Filtres lus APRÈS l'await (idem mouvements) : évite qu'un rendu lent
+    // n'écrase la table avec les valeurs de filtre d'avant
     const q = $('#search').value.trim().toLowerCase();
     const cat = $('#filter-category').value;
     const st = $('#filter-status').value;
-    const all = await Store.getProducts();
     return all.filter(p =>
       (!q || [p.name, p.ref, p.category, p.desc].join(' ').toLowerCase().includes(q)) &&
       (!cat || p.category === cat) &&
@@ -187,9 +189,12 @@
     $('#categories').innerHTML = cats.map(c => `<option value="${esc(c)}">`).join('');
   }
 
+  let productsRender = 0;
   async function renderProducts() {
+    const render = ++productsRender;
     await refreshCategoryFilters();
     const list = await filteredProducts();
+    if (render !== productsRender) return; // un rendu plus récent va écrire
     $('#products-count').textContent = `${list.length} produit(s)`;
     $('#products-empty').hidden = list.length > 0;
     $('#products-body').innerHTML = list.map(p => `
@@ -299,10 +304,15 @@
   });
 
   /* ---------- Movements ---------- */
+  let movementsRender = 0;
   async function renderMovements() {
+    const render = ++movementsRender;
+    const movements = await Store.getMovements();
+    if (render !== movementsRender) return; // un rendu plus récent va écrire
+    // Filtre et recherche lus APRÈS l'await : une réponse tardive ne peut plus
+    // réécrire la table avec un filtre obsolète (course entre rendus)
     const type = $('#filter-type').value;
     const q = $('#search').value.trim().toLowerCase();
-    const movements = await Store.getMovements();
 
     const list = movements.filter(m => {
       const hay = [m.productName || '', m.productRef || '', m.reason, m.author].join(' ').toLowerCase();

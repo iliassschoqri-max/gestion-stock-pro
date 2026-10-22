@@ -249,12 +249,59 @@ async function run() {
   click($('#btn-logout'));
   check('déconnexion : retour à l\'écran login', await waitFor(() => $('#app').hidden === true));
 
+  /* --- Robustesse : réponses serveur désynchronisées --- */
+  // Un rendu lent (lancé par le changement de vue) ne doit pas écraser un rendu
+  // plus récent : sinon le filtre "entrées seulement" semble ne pas fonctionner.
+  await checkLateRender();
+
   console.log('\n' + passed + '/' + (passed + failed) + ' tests interface OK');
   stopServer(server);
   if (failed) {
     console.error('\nÉchecs :\n' + failures.join('\n'));
     process.exit(1);
   }
+}
+
+/* Simule une réponse serveur tardive : le rendu déclenché par le changement de
+   vue arrive après le rendu déclenché par le filtre. */
+async function checkLateRender() {
+  const dom = new JSDOM(html, { runScripts: 'outside-only', url: BASE + '/', pretendToBeVisual: true });
+  const { window } = dom;
+  window.fetch = async (input, init = {}) => {
+    let url = typeof input === 'string' ? input : input.url;
+    if (url.startsWith('/')) url = BASE + url;
+    return fetch(url, init);
+  };
+  const lateApp = appSrc.replace(
+    'const movements = await Store.getMovements();',
+    "const movements = await Store.getMovements(); if (window.__late) { window.__late = false; window.__lateUsed = true; await new Promise(r => setTimeout(r, 800)); }"
+  );
+  window.eval(storeSrc + '\n' + lateApp + '\nwindow.__Store = Store;');
+
+  const doc = window.document;
+  const $ = s => doc.querySelector(s);
+  const $$ = s => [...doc.querySelectorAll(s)];
+  const click = el => el.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  const change = el => el.dispatchEvent(new window.Event('change', { bubbles: true }));
+
+  $('#login-user').value = 'admin';
+  $('#login-pass').value = 'admin';
+  $('#form-login').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+  await waitFor(() => $('#app').hidden === false);
+  await waitFor(() => $$('#movements-body tr').length > 0);
+
+  window.__late = true;
+  click(doc.querySelector('[data-view="movements"]'));
+  await sleep(50);
+  $('#filter-type').value = 'in';
+  change($('#filter-type'));
+  await sleep(1200);
+
+  check('rendu lent : le filtre reste appliqué', !!window.__lateUsed && await waitFor(() => {
+    const rows = $$('#movements-body tr');
+    return rows.length > 0 && rows.every(tr => tr.textContent.includes('Entrée'));
+  }));
+  window.close();
 }
 
 async function apiJson(p) {
